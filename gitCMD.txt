@@ -1,0 +1,16 @@
+ /* for first time */
+
+ 1. git init
+ 2. echo "" > .gitignore
+ 3.  git remote add origin <github repo link>
+   -> git remote add origin https://github.com/alaminrabbijony/NodeJs-Basics.git
+4. git add .
+5. git commit -m "connected" 
+6. git branch -> check what branch
+7. git push -u origin master
+
+ /* Daily git cmd */
+
+1. git add .
+2. git commit -m "guidence txt file created"
+3. git push
