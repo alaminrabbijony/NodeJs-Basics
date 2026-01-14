@@ -4,11 +4,13 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "nodemon app.js",
+    "test": "nodemon eventLoop.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "superagent": "^10.3.0"
   }
 }
