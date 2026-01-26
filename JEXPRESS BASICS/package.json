@@ -1,0 +1,33 @@
+{
+  "name": "jexpress-basics",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js",
+    "prod": "cross-env NODE_ENV=production nodemon server.js",
+    "lint": "eslint .",
+    "debug": "ndb server.js"
+  },
+  "author": "arj",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^4.22.1",
+    "mongodb": "^7.0.0",
+    "mongoose": "^9.1.4",
+    "morgan": "^1.10.1",
+    "slugify": "^1.6.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "cross-env": "^10.1.0",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^17.23.2",
+    "eslint-plugin-node": "^11.1.0",
+    "prettier": "^3.8.0"
+  }
+}
