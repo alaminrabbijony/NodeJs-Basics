@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
+const User = require('./UserModel');
 
 const tourSchema = new mongoose.Schema(
   {
@@ -32,7 +33,8 @@ const tourSchema = new mongoose.Schema(
       default: 4.5,
       min: [1.0, 'Rating must be above 1.0'],
       max: [5.0, 'Rating must be below 5.0'],
-      set: (val) => Math.round(val * 10) / 10, // 4.6666, 46.666, 47, 4.7
+      set: (val) => Math.round(val * 10) / 10, // 4.6666 => 46.666=> 47=> 4.7
+      //set is use to set a value for surgery
     },
     ratingsQuantity: {
       type: Number,
@@ -76,25 +78,117 @@ const tourSchema = new mongoose.Schema(
       default: Date.now(),
       select: false, // hide from output
     },
+
     startDates: [Date], // array of dates of start dates
     secrateTour: {
       type: Boolean,
       default: false,
     },
+    startLocation: {
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point'],
+      },
+      coordinates: [Number],
+      address: String,
+      description: String,
+    },
+    location: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point'],
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+      },
+    ],
+    // guides: [{
+    //   _id: mongoose.Schema.ObjectId,
+    //   name: String,
+    //   email: String,
+    //   role: String
+    // }]
+
+    //guides: Array
+    guides: [
+      {
+        type: mongoose.Schema.ObjectId, // for referncing
+        ref: 'User',
+      },
+    ],
+
+    /*Child ref*/
+    // reviews: [
+    //   {
+    //     type: mongoose.Schema.ObjectId,
+    //     ref: 'Review'
+    //   }
+    // ]
   },
+
   {
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
 );
 
+/*------------------------------------INDEX -> for optimizing quering time------------ ***/
+
+// Single index quering
+tourSchema.index({ price: -1 });
+
+//Compund indexing
+tourSchema.index({ price: 1, ratingsAverage: -1 });
+
+//GeoSpatial tour indexing
+
+tourSchema.index({ startLocation: '2dsphere' });
+
 tourSchema.virtual('durrationWeeks').get(function () {
   return this.duration / 7;
 });
-/* 
+//virtual populate
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  foreignField: 'tour', //the field that is in the Review Model
+  localField: '_id', //The field that is in this model
+});
+
 //DOCUMENT MIDDLEWARE: runs before .save() and .create()
 // pre-save hook doesnt run for .insertMany() or .update()
 
+/**
+ * EMBEDDING
+ *
+ */
+//Jona's method
+// tourSchema.pre('save', async function () {
+//   const guidesPromise = this.guides.map( async id => await User.findById(id))
+//   this.guides = await Promise.all( guidesPromise)
+// })
+
+/*------------------------------INSTANCE => Only on Current doc-------------------------------- */
+
+// Standard embedding method
+
+tourSchema.pre('save', async function () {
+  if (!this.guides || this.guides.length === 0) return;
+
+  const users = await Promise.all(this.guides.map((id) => User.findById(id)));
+
+  this.guides = users.map((u) => ({
+    _id: u._id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+  }));
+});
+
+/*
 tourSchema.pre('save', function (next) {
   this.slug = slugify(this.name, { lower: true });
   // creates a slug from the name before saving to database
@@ -113,12 +207,18 @@ tourSchema.post('save', function (doc) {
 });
 */
 
-//QUERY MIDDLEWARE
+//QUERY MIDDLEWARE =>
 
-tourSchema.pre(/^find/, function (next) {
+tourSchema.pre(/^find/, function () {
   this.find({ secrateTour: { $ne: true } });
   this.start = Date.now();
-  //next();
+});
+
+tourSchema.pre(/^find/, function () {
+  this.populate({
+    path: 'guides',
+    select: '-__v -updatePasswordAt -active',
+  });
 });
 
 tourSchema.post(/^find/, function (docs) {
@@ -127,12 +227,12 @@ tourSchema.post(/^find/, function (docs) {
 
 //AGGREGATION MIDDLEWARE
 
-tourSchema.pre('aggregate', function (next) {
+tourSchema.pre('aggregate', function () {
   // console.log(this.pipeline());
+  const firstStage = this.pipeline()[0];
 
+  if (firstStage && firstStage.$geoNear) return;
   this.pipeline().unshift({ $match: { secrateTour: { $ne: true } } });
-
-  // next();
 });
 const Tour = mongoose.model('Tour', tourSchema);
 module.exports = Tour;

@@ -20,14 +20,15 @@ process.on('uncaughtException', (err) => {
 const dotenv = require('dotenv');
 dotenv.config({ path: './config.env' });
 
-const REQUIRED_ENVS = ['DB', 'MONGODB_PASSWORD', 'PORT', 'NODE_ENV'];
+const REQUIRED_ENVS = ['DB', 'MONGODB_PASSWORD', 'PORT'];
 
 REQUIRED_ENVS.forEach((ev) => {
-  if (!process.env[ev])
+  if (!process.env[ev]) {
     console.error(
       `💥💥💥\nERROR: Missing required environment variable ${ev}\n💥💥💥`
     );
-  process.exit(1); // Exit if any required env var is missing
+    process.exit(1); // Exit if any required env var is missing
+  }
 });
 
 /**
@@ -63,7 +64,8 @@ const start = async () => {
   try {
     await connectDB();
     server = app.listen(port, () => {
-      console.log(`🚀🚀🚀Listening from ${port}...`);
+      // callback after server starts
+      console.log(`🚀🚀🚀Listening from ${port}...`); //
     });
   } catch (error) {
     console.error('💥💥💥\nlauching failed:', error);
@@ -96,16 +98,18 @@ process.on('unhandledRejection', (err) => {
  * ============================
  */
 
-const shutdown = signal => {
-    console.log(`☢☢☢ ${signal} received. Shutting down gracefully...`);
-    if(Server) {
-      server.close(() => {
-        mongoose.connection.close(false , () => process.exit(0)); // success
-      })
-    }else{
-      process.exit(0);
-    }
-}
+const shutdown = (signal) => {
+  console.log(`☢☢☢ ${signal} received. Shutting down gracefully...`); // e.g. SIGTERM for heroku
+  if (server) {
+    // if server is running
+    server.close(() => {
+      // stop taking new requests
+      mongoose.connection.close(false, () => process.exit(0)); // success
+    });
+  } else {
+    process.exit(0);
+  }
+};
 
 process.on('SIGTERM', () => shutdown('SIGTERM')); // for heroku
 process.on('SIGINT', () => shutdown('SIGINT')); // for local ctrl+c
